@@ -1,0 +1,16 @@
+#ungerichtet
+go,gr,11
+go,b,10
+go,s,15
+go,ge,5
+go,r,15
+gr,b,6
+gr,s,20
+gr,ge,19
+gr,r,18
+b,s,3
+b,ge,12
+b,r,10
+s,ge,17
+s,r,15
+ge,r,5
