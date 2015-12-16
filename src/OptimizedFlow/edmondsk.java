@@ -3,6 +3,9 @@ package OptimizedFlow;
 import ADTGraph.Graph;
 import ADTGraph.Vertex;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 /**
  * Created by remen on 13.12.15.
  */
@@ -15,7 +18,7 @@ public class edmondsk {
      *
      */
     public static int edmondskarp(Graph graph, Vertex source, Vertex target) {
-
+        Queue<Vertex> queue = new LinkedList<>();
         return 0;
     }
 

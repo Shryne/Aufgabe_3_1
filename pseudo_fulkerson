@@ -1,0 +1,63 @@
+1) init(graph, q)
+
+    // Weise allen Kanten f(e_ij) einen initialen Wert zu,
+    // der die Nebenbedingungen erfüllt (0)
+
+    for (int i = 0; i < edges.size; i += 2)
+        v1 = edges.get(i)
+        v2 = edges.get(i + 1)
+
+        graph.setAtE(v1, v2, ..., 0)
+
+    // Markiere q mit (undefiniert, unendlich)
+    // (Markierter, Anschließender, Position des Anschließenden, Fluss)
+    marked.add(new Marker(q, null, null, infinite))
+
+// Falls alle markierten Ecken inspiziert wurden, gehe nach 4
+while (!allMarkedInspected(marked))
+
+    2) inspect and mark()
+
+        // Wähle eine beliebige markierte, ...
+        for (int i = 0; i < marked.size; i++)
+
+            vi = marked.get(i).marked
+
+            // ...aber noch nicht inspizierte Ecke vi
+            if (!isInspected(vi, marked))
+
+                // und inspiziere sie wie folgt:
+                // Für jede Kante e_ij, anschließend an vi...
+                for (int j = 0; j < graph.incident(vi) || !isMarked(s, marked); j += 2) // falls s markiert ist, gehe zu 3
+                    v1 = incident.get(i)
+                    v2 = incident.get(i + 1)
+
+                    // (Vorwärtskante):
+                    if (v == v1)
+                        // ... mit unmarkierter Ecke vj (Wenn vi == v1, dann ist v2 == vj) und f(e_ij) < c(e_ij)...
+                        if (!isMarked(v2) && !isFull(graph, v1, v2))
+                            // markiere vj mit (+vi, dj) (dj = min(c(e_ij) - f(e_ij), di)
+
+                            di = graph.getAtV(v1, ...)
+                            dj = min(capacity(graph, v1, v2) - flow(graph, v1, v2), di)
+                            marked.add(new Marker(v2, v1, SUCC, di))
+                    else // (Rückwärtskante):
+
+                        if (!isMarked(v2) && !isEmpty(graph, v1, v2))
+                            // markiere vj mit (-vi, dj) (dj = min(f(e_ij), di))
+
+                            di = graph.getAtV(v1, ...)
+                            dj = min(flow(graph, v1, v2), di)
+
+    3) enlarge flow()
+        // Bei s beginnend...
+        actualVertex = s
+
+        // ...bis q
+        while (!actualVertex == q)
+
+            // lässt sich anhand der Markierungen rückwärts durchlaufen.
+            // Für jede Vorwärtskante wird f(e_ij) um ds erhöht
+            if (
+
+            // Für jede Rückwärtskante wird f(e_ji) um ds vermindert

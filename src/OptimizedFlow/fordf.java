@@ -43,7 +43,7 @@ public class fordf {
 
         @Override
         public String toString() {
-            return "M(" + adjacentPos + ", " + adjacent + ", " + flow + ")";
+            return "M[" + marked + "](" + adjacentPos + ", " + adjacent + ", " + flow + ")";
         }
     }
 
@@ -52,6 +52,11 @@ public class fordf {
     // ####################################################
     private static final String FLOW_ARG_NAME = "flow";
     private static final String CAPACITY_ARG_NAME = "max";
+
+    public static void main(String args[]) {
+        Graph g = Graph.importG("graphs/graph_own_3");
+        System.out.println(fordfulkerson(g, Vertex.createV("q"), Vertex.createV("s")));
+    }
 
     /**
      * Uses the ford fulkerson algorithm to calculate the value of the
@@ -68,94 +73,12 @@ public class fordf {
         init(graph, source, marked);
 
         while (!allMarkedInspected(marked)) {
-            inspectAndMark(source, marked, graph);
+            inspectAndMark(target, marked, graph);
+            augmentFlow(target, source, graph, marked);
         }
 
-
+        //return end(target, graph);
         return 0;
-        /*
-        // ################################################
-        // init
-        // ################################################
-        if (graph == null) return 0;
-
-        ArrayList<Vertex> vertexes = graph.getVertexes();
-        if (!preconditions(vertexes, source, target)) return 0;
-
-        ArrayList<Vertex> edges = graph.getEdges();
-        for (int i = 0; i < edges.size(); i += 2)
-            setCapacity(graph, edges.get(i), edges.get(i + 1), 0);
-
-        //TODO What about backward edges?
-
-        HashMap<Vertex, Marker> marked = new HashMap<>();
-
-        ArrayList<Vertex> marked1 = new ArrayList<>();
-        ArrayList<Vertex> inspected = new ArrayList<>();
-
-        while (inspected.size() < vertexes.size()) {
-
-            initMarker(marked, source);
-            // ################################################
-            // inspect and mark
-            // ################################################
-
-            while (!marked.containsKey(target)) {
-
-                Iterator<Map.Entry<Vertex, Marker>> iterator = marked.entrySet().iterator();
-                HashMap<Vertex, Marker> actualMarked = new HashMap<>();
-                HashMap<Vertex, Marker> nextMarked = new HashMap<>();
-
-                while (iterator.hasNext()) {
-                    Map.Entry<Vertex, Marker> entry = iterator.next();
-                    inspected.add(inspect(graph, entry, marked, nextMarked));
-                    iterator.remove();
-                }
-
-                marked = nextMarked;
-                //System.out.println(nextMarked);
-            }
-
-            while (!marked1.contains(target)) {
-
-                for (int i = 0; i < marked1.size(); i++) {
-
-                }
-            }
-
-            // ################################################
-            // enlarge
-            // ################################################
-            Vertex actualVertex = target;
-            int crement = marked.get(target).flow;
-
-            while (actualVertex != source) {
-                ArrayList<Vertex> incidents = graph.getIncident(actualVertex);
-                for (int i = 0; i < incidents.size(); i += 2) {
-                    Vertex s = incidents.get(i);
-                    Vertex t = incidents.get(i + 1);
-
-                    if (t == actualVertex) // forward edge
-                        graph.setAtE(s, t, FLOW_ARG_NAME, graph.getValE(s, t, FLOW_ARG_NAME) + crement);
-                    else // backward edge
-                        graph.setAtE(s, t, FLOW_ARG_NAME, graph.getValE(s, t, FLOW_ARG_NAME) - crement);
-                }
-                actualVertex = getPredecessor(target, marked);
-            }
-            System.out.println("HEY");
-        }
-
-        // ################################################
-        // end
-        // ################################################
-        ArrayList<Vertex> incidents = graph.getIncident(target);
-        int flow = 0;
-
-        for (int i = 0; i < incidents.size(); i += 2)
-            flow += capacity(graph, incidents.get(i), incidents.get(i + 1));
-
-        return flow;
-        */
     }
 
     /**
@@ -173,11 +96,74 @@ public class fordf {
         marked.add(new Mark(source));
     }
 
-    private static void inspectAndMark(Vertex source, List<Mark> marked, Graph graph) {
-        for (int i = 0; i < marked.size() || marked.contains(source); i++) {
+    private static void inspectAndMark(Vertex target, List<Mark> marked, Graph graph) {
+        for (int i = 0; /* i < marked.size()  &&*/ !isVertexMarked(target, marked); i++) { //TODO: commented code implement
             Vertex markedVertex = marked.get(i).marked;
             inspectVertex(markedVertex, marked, graph);
+
+            setInspected(markedVertex, marked);
         }
+    }
+
+    private static void augmentFlow(Vertex actualVertex, Vertex source, Graph graph, List<Mark> marked) {
+        final int crement = getMark(actualVertex, marked).flow;
+
+        while (actualVertex != source) {
+            List<Vertex> incidents = graph.getIncident(actualVertex);
+
+            if (markedSuccessor(actualVertex, marked))
+                for (int i = 0; i < incidents.size(); i += 2) {
+                    Vertex localSource = incidents.get(i);
+                    Vertex localTarget = incidents.get(i + 1);
+
+                    if (localTarget == actualVertex) {
+                        int oldFlow = graph.getValE(localSource, localTarget, FLOW_ARG_NAME);
+                        graph.setAtE(localSource, localTarget, FLOW_ARG_NAME, oldFlow + crement);
+                    }
+                }
+            else
+                for (int i = 0; i < incidents.size(); i += 2) {
+                    Vertex localSource = incidents.get(i);
+                    Vertex localTarget = incidents.get(i + 1);
+
+                    if (localTarget == actualVertex) {
+                        int oldFlow = graph.getValE(localSource, localTarget, FLOW_ARG_NAME);
+                        graph.setAtE(localSource, localTarget, FLOW_ARG_NAME, oldFlow - crement);
+                    }
+                }
+            actualVertex = getMark(actualVertex, marked).adjacent;
+        }
+        removeMarks(marked, source);
+    }
+
+    private static int end(Vertex target, Graph graph) {
+        ArrayList<Vertex> incidents = graph.getIncident(target);
+        int flow = 0;
+
+        for (int i = 0; i < incidents.size(); i += 2)
+            flow += capacity(graph, incidents.get(i), incidents.get(i + 1));
+
+        return flow;
+    }
+
+    private static void removeMarks(List<Mark> marked, Vertex source) {
+        marked.clear();
+        marked.add(new Mark(source));
+    }
+
+    private static Mark getMark(Vertex vertex, List<Mark> marked) {
+        for (Mark m : marked)
+            if (m.marked == vertex) return m;
+
+        return null;
+    }
+
+    private static boolean markedSuccessor(Vertex vertex, List<Mark> marked) {
+        return getMark(vertex, marked).adjacentPos == SUCC;
+    }
+
+    private static void setInspected(Vertex markedVertex, List<Mark> marked) {
+        getMark(markedVertex, marked).inspected = true;
     }
 
     private static boolean allMarkedInspected(List<Mark> marked) {
@@ -195,7 +181,7 @@ public class fordf {
 
             if (localSource == markedVertex) {
                 if (!isFull(graph, localSource, incidents.get(i + 1))
-                        && !isVertexMarked(localSource, marked))
+                        && !isVertexMarked(incidents.get(i + 1), marked))
 
                     markForward(localSource, incidents.get(i + 1), marked, graph);
 
@@ -218,7 +204,7 @@ public class fordf {
 
     private static void markBackward(Vertex markedVertex, Vertex toMark, List<Mark> marked, Graph graph) {
         int di = getFlow(markedVertex, marked);
-        int dj = Math.min(flow(graph, markedVertex, toMark), di);
+        int dj = Math.min(flow(graph, toMark, markedVertex), di);
 
         marked.add(new Mark(toMark, markedVertex, AdjacentPos.PRE, dj));
     }
@@ -235,14 +221,38 @@ public class fordf {
         throw new IllegalArgumentException(vertex + " is not marked: " + marked);
     }
 
+    /**
+     * Checks whether the preconditions for the {@link fordf#fordfulkerson(Graph, Vertex, Vertex)} method
+     * are given or not.
+     *
+     * @return true if the preconditions are given and false if not.
+     */
+    private static boolean preconditions(ArrayList<Vertex> vertexes, Vertex source, Vertex target) {
+        if (source == null || target == null) return false;
+        if (source == target) return false;
+        if (!vertexes.contains(source) || !vertexes.contains(target)) return false;
+        return true;
+    }
 
 
 
+    /**
+     * Like {@link fordf#fordfulkerson(Graph, Vertex, Vertex)}, but returns the
+     * time needed for this algorithm.
+     */
+    public static long fordfulkersonRtm(Graph graph, Vertex source, Vertex target) {
+        return 0;
+    }
 
+    /**
+     * Like {@link fordf#fordfulkerson(Graph, Vertex, Vertex)}, but returns the
+     * amount of accesses on the graph.
+     */
+    public static long fordfulkersonAcc(Graph graph, Vertex source, Vertex target) {
+        return 0;
+    }
 
-
-
-
+    /*
     //#####################################################
     // returns the predecessor of the given vertex.
     //#####################################################
@@ -278,6 +288,7 @@ public class fordf {
      * an unmarked, non empty vertex, mark the unmarked vertex with
      * (given vertex, SUCC, min(flow(edge), flow(given vertex)))
      */
+    /*
     private static Vertex inspect(Graph graph, Map.Entry<Vertex, Marker> entry,
                                   HashMap<Vertex, Marker> marked, HashMap<Vertex, Marker> nextMarked) {
         Vertex vi = entry.getKey();
@@ -326,35 +337,6 @@ public class fordf {
         int dj = Math.min(capacity(graph, source, target) - flow(graph, source, target), di);
 
         nextMarked.put(target, new Marker(SUCC, source, dj));
-    }
-
-    /**
-     * Checks whether the preconditions for the {@link fordf#fordfulkerson(Graph, Vertex, Vertex)} method
-     * are given or not.
-     *
-     * @return true if the preconditions are given and false if not.
-     */
-    private static boolean preconditions(ArrayList<Vertex> vertexes, Vertex source, Vertex target) {
-        if (source == null || target == null) return false;
-        if (source == target) return false;
-        if (!vertexes.contains(source) || !vertexes.contains(target)) return false;
-        return true;
-    }
-
-    /**
-     * Like {@link fordf#fordfulkerson(Graph, Vertex, Vertex)}, but returns the
-     * time needed for this algorithm.
-     */
-    public static long fordfulkersonRtm(Graph graph, Vertex source, Vertex target) {
-        return 0;
-    }
-
-    /**
-     * Like {@link fordf#fordfulkerson(Graph, Vertex, Vertex)}, but returns the
-     * amount of accesses on the graph.
-     */
-    public static long fordfulkersonAcc(Graph graph, Vertex source, Vertex target) {
-        return 0;
     }
 
     //#####################################################
